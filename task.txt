@@ -1,0 +1,15 @@
+Soccer Ball Physics
+Looking for an experienced scripter who is able to script an entire Ball Physics System in my game, similar to that of popular game "BLUE LOCK RIVALS", with a few adjustments on the curve and velocity.
+
+The system must include:
+
+Ball Physics
+Tackling
+Dribbling
+Shooting
+Welded to the player (done)
+
+Timeframe - 1 week
+
+Please show portfolio before messaging.
+Thank You!
