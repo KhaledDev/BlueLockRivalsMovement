@@ -28,17 +28,12 @@ local onRainbowflick = RS.Events.onRainbowflick
 local canPickup : boolean? = true
 local InGamePlayers = {}
 
--- Function to calculate a point on a simplified Bezier curve
-local function BezierCurve(t : number, p0 : Vector3?, p1 : Vector3?)
-    return (1 - t) * p0 + t * p1
-end
-
 function SetupBall() -- Initalize the ball on startup by creating the model and setting the material.
     ball = Instance.new("Part")
     ball.Name = "Ball"
     ball.Shape = Enum.PartType.Ball
     ball.Material = Enum.Material.SmoothPlastic
-    ball.Size = Vector3.new(1, 1, 1) * 2
+    ball.Size = Vector3.new(1, 1, 1) * 1.5
     ball.Position = Vector3.new(0, 0, 0)
     ball.CollisionGroup = "Ball"
     ball.Parent = workspace
@@ -96,6 +91,8 @@ function ShootBall(player : Player?, Multiplier : number?)
     
     Multiplier = Multiplier or 1
     
+    print(player.Name .. " is shooting")
+    
     -- Remove the weld from the ball
     if ball:FindFirstChild("Weld") then
         ball.Weld:Destroy()
@@ -128,6 +125,8 @@ function PassBall(player : Player?,Multiplier : number?)
     if not InGamePlayers[player].HasBall then return end
     
     if typeof(Multiplier) ~= "number" then return end
+    
+    print(player.Name .. " is passing")
     
     Multiplier = Multiplier or 1
     
@@ -196,6 +195,8 @@ end
 function Tackle(player : Player?)
     
     if typeof(player) ~= "Instance" and not player:IsDescendantOf(Players) then return end
+    
+    if InGamePlayers[player].HasBall then return end -- Player already has the ball
     
     print(player.Name .. " Is Tackling")
     
