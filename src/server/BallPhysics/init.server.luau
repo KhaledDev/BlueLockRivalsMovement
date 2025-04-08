@@ -28,6 +28,8 @@ local onRainbowflick = RS.Events.onRainbowflick
 local canPickup : boolean? = true
 local InGamePlayers = {}
 
+
+
 function SetupBall() -- Initalize the ball on startup by creating the model and setting the material.
     ball = Instance.new("Part")
     ball.Name = "Ball"
@@ -205,10 +207,10 @@ function Tackle(player : Player?)
     -- Check if the player is touching another player
     for _, otherPlayer in pairs(Players:GetPlayers()) do
         if otherPlayer == player or not otherPlayer.Character then continue end
-
+        
         local otherRootPart = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not otherRootPart then continue end
-
+        
         local distance = (character.HumanoidRootPart.Position - otherRootPart.Position).Magnitude
         if distance > BallPhysicsProperties.Tackle.Range then continue end
 
@@ -264,9 +266,12 @@ function Rainbowflick(player : Player?)
     if currentOwner then
         ball:SetNetworkOwner(nil)
     end
-
+    
+    -- Move the ball up using the upward force
+    ball.Position = ball.Position + BallPhysicsProperties.Rainbowflick.UpForce
+    
     -- Directly set the ball's velocity for a smooth upward and forward motion
-    ball.Velocity = ball.CFrame.LookVector * BallPhysicsProperties.Rainbowflick.FrontForce + BallPhysicsProperties.Rainbowflick.UpForce -- Forward and upward motion
+    ball.Velocity = ball.CFrame.LookVector * BallPhysicsProperties.Rainbowflick.FrontForce
     canPickup = false
     InGamePlayers[player].HasBall = false
 
@@ -303,8 +308,6 @@ function HandleBallTouch(hit : BasePart)
     -- Reset and assign network ownership
     ball:SetNetworkOwner(nil)
     ball:SetNetworkOwner(player)
-
-    task.delay(0.25, function() canPickup = true end) -- Re-enable pickup
 end
 
 -- Connect the ball's Touched event to the new function

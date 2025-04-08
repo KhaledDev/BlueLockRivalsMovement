@@ -21,13 +21,13 @@ BallPhysics.Dribble = {
 
 BallPhysics.Tackle = {
     TackleTime = 0.1,
-    TackleDistance = 5,
+    TackleDistance = 5, -- the distance to stop the animation at
     TackleForce = 100,
-    Range = 5
+    Range = 10 -- Distance from the player to the ball
 }
 
 BallPhysics.Rainbowflick = {
-    UpForce = Vector3.new(0,60,0),
+    UpForce = Vector3.new(0,15,0),
     FrontForce = 20,
     TimetoPickUp = 0.5
 }
