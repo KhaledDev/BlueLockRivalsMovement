@@ -336,10 +336,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         isCharging = true
         chargeStartTime = tick()
         ShootingBarUI.Visible = true
-    elseif input.KeyCode == Enum.KeyCode.E then
+    elseif input.KeyCode == Enum.KeyCode.Q then
         -- Dribble
         C_Dribble()
-    elseif input.KeyCode == Enum.KeyCode.T then
+    elseif input.KeyCode == Enum.KeyCode.E then
         -- Tackle
         C_Tackle()
     elseif input.KeyCode == Enum.KeyCode.Space then
