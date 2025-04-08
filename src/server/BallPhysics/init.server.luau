@@ -25,8 +25,13 @@ local onPass = RS.Events.onPass
 local onRainbowflick = RS.Events.onRainbowflick
 
 -- Variables
-local canPickup = true
+local canPickup : boolean? = true
 local InGamePlayers = {}
+
+-- Function to calculate a point on a simplified Bezier curve
+local function BezierCurve(t : number, p0 : Vector3?, p1 : Vector3?)
+    return (1 - t) * p0 + t * p1
+end
 
 function SetupBall() -- Initalize the ball on startup by creating the model and setting the material.
     ball = Instance.new("Part")
@@ -80,13 +85,17 @@ end
 --[[
     Function to shoot the ball will be called from a remote event.
 ]]
-function ShootBall(player : Player?)
+function ShootBall(player : Player?, Multiplier : number?)
     --[[
         Check if the player has the ball
         if the player doesn't then dont shoot
     ]]
     if not InGamePlayers[player].HasBall then return end
 
+    if typeof(Multiplier) ~= "number" then return end
+    
+    Multiplier = Multiplier or 1
+    
     -- Remove the weld from the ball
     if ball:FindFirstChild("Weld") then
         ball.Weld:Destroy()
@@ -102,11 +111,46 @@ function ShootBall(player : Player?)
     ball.Position = ball.Position + (ball.CFrame.LookVector * 2)
     
     -- Directly set the ball's velocity for instant shooting
-    ball.Velocity = ball.CFrame.LookVector * BallPhysicsProperties.Shooting.Force
+    ball.Velocity = ball.CFrame.LookVector * BallPhysicsProperties.Shooting.Force + (BallPhysicsProperties.Shooting.UpForce * Multiplier)
     canPickup = false
     InGamePlayers[player].HasBall = false
 
     task.delay(BallPhysicsProperties.Shooting.TimetoPickUp, function() 
+        canPickup = true
+    end)
+end
+
+function PassBall(player : Player?,Multiplier : number?)
+    --[[
+        Check if the player has the ball
+        if the player doesn't then dont pass
+    ]]
+    if not InGamePlayers[player].HasBall then return end
+    
+    if typeof(Multiplier) ~= "number" then return end
+    
+    Multiplier = Multiplier or 1
+    
+    -- Remove the weld from the ball
+    if ball:FindFirstChild("Weld") then
+        ball.Weld:Destroy()
+    end
+
+    -- Remove the player that has the network ownership of the ball
+    local currentOwner = ball:GetNetworkOwner()
+    if currentOwner then
+        ball:SetNetworkOwner(nil)
+    end
+    
+    -- Move the ball 2 units in front of its current position, to avoid accidental collisions
+    ball.Position = ball.Position + (ball.CFrame.LookVector * 2)
+    
+    -- Directly set the ball's velocity for instant shooting
+    ball.Velocity = ball.CFrame.LookVector * BallPhysicsProperties.Passing.Force
+    canPickup = false
+    InGamePlayers[player].HasBall = false
+
+    task.delay(BallPhysicsProperties.Passing.TimetoPickUp, function() 
         canPickup = true
     end)
 end
@@ -121,6 +165,8 @@ function Dribble(player : Player?)
     ]]
     
     if not InGamePlayers[player].HasBall then return end
+    
+    print(player.Name .. " is dribbling")
     
     --[[
         Small wait up check time to give time for start up animation
@@ -150,6 +196,8 @@ end
 function Tackle(player : Player?)
     
     if typeof(player) ~= "Instance" and not player:IsDescendantOf(Players) then return end
+    
+    print(player.Name .. " Is Tackling")
     
     local character = player.Character
     
@@ -190,10 +238,18 @@ function Tackle(player : Player?)
     
 end
 
+--[[
+    Function to break the ankle
+    Gets called if the player that has the ball is dribbling and a player tackles him.
+]]
 function BreakAnkle(character)
     RagdollService:Ragdoll(character)
 end
 
+--[[
+    Function that launches the ball up and forward.
+    Gets called when the player jumps
+]]
 function Rainbowflick(player : Player?)
     if not InGamePlayers[player].HasBall then return end
 
@@ -212,7 +268,7 @@ function Rainbowflick(player : Player?)
     ball.Velocity = ball.CFrame.LookVector * BallPhysicsProperties.Rainbowflick.FrontForce + BallPhysicsProperties.Rainbowflick.UpForce -- Forward and upward motion
     canPickup = false
     InGamePlayers[player].HasBall = false
-    
+
     task.delay(BallPhysicsProperties.Rainbowflick.TimetoPickUp, function()
         canPickup = true
     end)
@@ -254,9 +310,8 @@ end
 ball.Touched:Connect(HandleBallTouch)
 
 Players.PlayerAdded:Connect(function(player)
-    
     createPlayerProperties(player)
-    
+
     player.CharacterAdded:Connect(function(character)
         -- set the collision group for the player's character parts
         for _, part in ipairs(character:GetDescendants()) do
@@ -273,6 +328,7 @@ end)
 
 -- Event Connections
 onShoot.OnServerEvent:Connect(ShootBall)
+onPass.OnServerEvent:Connect(PassBall)
 onDribble.OnServerEvent:Connect(Dribble)
 onTackle.OnServerEvent:Connect(Tackle)
 onRainbowflick.OnServerEvent:Connect(Rainbowflick)

@@ -4,9 +4,10 @@ Looking for an experienced scripter who is able to script an entire Ball Physics
 The system must include:
 
 Ball Physics
-Tackling
-Dribbling
-Shooting
+Tackling (done requires testing)
+Dribbling (done requires testing)
+Shooting (with curve depending on how long the player held the left click button)
+Passing  (with smaller curve depending on how long the player held the right click button)
 Welded to the player (done)
 
 Timeframe - 1 week
