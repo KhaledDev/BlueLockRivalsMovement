@@ -21,6 +21,12 @@
         },
         "onRainbowflick":{
           "$className": "RemoteEvent"
+        },
+        "onClientShoot":{
+          "$className": "RemoteEvent"
+        },
+        "onClientPass":{
+          "$className": "RemoteEvent"
         }
       }
     },

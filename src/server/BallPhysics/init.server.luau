@@ -24,6 +24,10 @@ local onTackle = RS.Events.onTackle
 local onPass = RS.Events.onPass
 local onRainbowflick = RS.Events.onRainbowflick
 
+-- RemoteEvents for client-server communication
+local onClientShoot = RS.Events.onClientShoot
+local onClientPass = RS.Events.onClientPass
+
 -- Variables
 local canPickup : boolean? = true
 local InGamePlayers = {}
@@ -105,6 +109,11 @@ function ShootBall(player : Player?, Multiplier : number?)
     -- Apply impulse for smoother shooting
     local impulse = (ball.CFrame.LookVector * BallPhysicsProperties.Shooting.Force + (BallPhysicsProperties.Shooting.UpForce * Multiplier)) * ball.AssemblyMass
     ball:ApplyImpulse(impulse)
+
+    -- Broadcast the shooting action to all clients
+    onClientShoot:FireAllClients(player, ball.Position, ball.CFrame.LookVector, Multiplier)
+    
+    -- Update server-side state
     canPickup = false
     InGamePlayers[player].HasBall = false
 
@@ -137,6 +146,11 @@ function PassBall(player : Player?, Multiplier : number?)
     -- Apply impulse for smoother passing
     local impulse = (ball.CFrame.LookVector * BallPhysicsProperties.Passing.Force) * ball.AssemblyMass
     ball:ApplyImpulse(impulse)
+
+    -- Broadcast the passing action to all clients
+    onClientPass:FireAllClients(player, ball.Position, ball.CFrame.LookVector, Multiplier)
+    
+    -- Update server-side state
     canPickup = false
     InGamePlayers[player].HasBall = false
 
@@ -283,6 +297,7 @@ function HandleBallTouch(hit : BasePart)
 
     ball.AssemblyLinearVelocity = rootPart.AssemblyLinearVelocity * 1.5 -- Adjust velocity multiplier
     
+    ball:SetNetworkOwner(player) -- Set network ownership to the player
 end
 
 -- Connect the ball's Touched event to the new function
