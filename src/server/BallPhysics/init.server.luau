@@ -28,8 +28,6 @@ local onRainbowflick = RS.Events.onRainbowflick
 local canPickup : boolean? = true
 local InGamePlayers = {}
 
-
-
 function SetupBall() -- Initalize the ball on startup by creating the model and setting the material.
     ball = Instance.new("Part")
     ball.Name = "Ball"
@@ -38,6 +36,7 @@ function SetupBall() -- Initalize the ball on startup by creating the model and 
     ball.Size = Vector3.new(1, 1, 1) * 1.5
     ball.Position = Vector3.new(0, 0, 0)
     ball.CollisionGroup = "Ball"
+
     ball.Parent = workspace
     return ball
 end
@@ -99,18 +98,13 @@ function ShootBall(player : Player?, Multiplier : number?)
     if ball:FindFirstChild("Weld") then
         ball.Weld:Destroy()
     end
-
-    -- Remove the player that has the network ownership of the ball
-    local currentOwner = ball:GetNetworkOwner()
-    if currentOwner then
-        ball:SetNetworkOwner(nil)
-    end
     
     -- Move the ball 2 units in front of its current position, to avoid accidental collisions
     ball.Position = ball.Position + (ball.CFrame.LookVector * 2)
     
-    -- Directly set the ball's velocity for instant shooting
-    ball.Velocity = ball.CFrame.LookVector * BallPhysicsProperties.Shooting.Force + (BallPhysicsProperties.Shooting.UpForce * Multiplier)
+    -- Apply impulse for smoother shooting
+    local impulse = (ball.CFrame.LookVector * BallPhysicsProperties.Shooting.Force + (BallPhysicsProperties.Shooting.UpForce * Multiplier)) * ball.AssemblyMass
+    ball:ApplyImpulse(impulse)
     canPickup = false
     InGamePlayers[player].HasBall = false
 
@@ -119,7 +113,7 @@ function ShootBall(player : Player?, Multiplier : number?)
     end)
 end
 
-function PassBall(player : Player?,Multiplier : number?)
+function PassBall(player : Player?, Multiplier : number?)
     --[[
         Check if the player has the ball
         if the player doesn't then dont pass
@@ -136,18 +130,13 @@ function PassBall(player : Player?,Multiplier : number?)
     if ball:FindFirstChild("Weld") then
         ball.Weld:Destroy()
     end
-
-    -- Remove the player that has the network ownership of the ball
-    local currentOwner = ball:GetNetworkOwner()
-    if currentOwner then
-        ball:SetNetworkOwner(nil)
-    end
     
     -- Move the ball 2 units in front of its current position, to avoid accidental collisions
     ball.Position = ball.Position + (ball.CFrame.LookVector * 2)
     
-    -- Directly set the ball's velocity for instant shooting
-    ball.Velocity = ball.CFrame.LookVector * BallPhysicsProperties.Passing.Force
+    -- Apply impulse for smoother passing
+    local impulse = (ball.CFrame.LookVector * BallPhysicsProperties.Passing.Force) * ball.AssemblyMass
+    ball:ApplyImpulse(impulse)
     canPickup = false
     InGamePlayers[player].HasBall = false
 
@@ -185,8 +174,6 @@ function Dribble(player : Player?)
     
     -- Disable the dribbling property for the player
     InGamePlayers[player].Dribbling = false
-    -- Reenable the ball pickup property
-    canPickup = true
     
 end
 
@@ -221,9 +208,6 @@ function Tackle(player : Player?)
         if ball:FindFirstChild("Weld") then
             ball.Weld:Destroy()
         end
-
-        -- Set the ball's network ownership to the tackling player
-        ball:SetNetworkOwner(player)
 
         -- Update player properties
         InGamePlayers[otherPlayer].HasBall = false
@@ -260,18 +244,12 @@ function Rainbowflick(player : Player?)
     if ball:FindFirstChild("Weld") then
         ball.Weld:Destroy()
     end
-
-    -- Remove the player that has the network ownership of the ball
-    local currentOwner = ball:GetNetworkOwner()
-    if currentOwner then
-        ball:SetNetworkOwner(nil)
-    end
     
     -- Move the ball up using the upward force
     ball.Position = ball.Position + BallPhysicsProperties.Rainbowflick.UpForce
     
     -- Directly set the ball's velocity for a smooth upward and forward motion
-    ball.Velocity = ball.CFrame.LookVector * BallPhysicsProperties.Rainbowflick.FrontForce
+    ball.AssemblyLinearVelocity = ball.CFrame.LookVector * BallPhysicsProperties.Rainbowflick.FrontForce
     canPickup = false
     InGamePlayers[player].HasBall = false
 
@@ -303,11 +281,8 @@ function HandleBallTouch(hit : BasePart)
     weld.C0 = CFrame.new(0, 2, 2) -- Position ball in front of player
     weld.Parent = ball
 
-    ball.Velocity = rootPart.Velocity * 1.5 -- Adjust velocity multiplier
-
-    -- Reset and assign network ownership
-    ball:SetNetworkOwner(nil)
-    ball:SetNetworkOwner(player)
+    ball.AssemblyLinearVelocity = rootPart.AssemblyLinearVelocity * 1.5 -- Adjust velocity multiplier
+    
 end
 
 -- Connect the ball's Touched event to the new function
@@ -323,6 +298,10 @@ Players.PlayerAdded:Connect(function(player)
                 part.CollisionGroup = "Player"
             end
         end
+        
+        local ragdolled = Instance.new("BoolValue", character)
+        ragdolled.Name = "Ragdolled"
+        ragdolled.Value = false
     end)
 end)
 

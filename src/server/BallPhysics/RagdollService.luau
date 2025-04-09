@@ -5,6 +5,8 @@ local Players = game:GetService("Players")
 function RagdollService:Ragdoll(Character)
     if Character:WaitForChild("Humanoid").Health <= 0 then return end
 	
+	Character.Ragdolled.Value = true
+	
 	for i, joint in pairs(Character:GetDescendants()) do
 		if joint:IsA("Motor6D") then
 			local socket = Instance.new("BallSocketConstraint",joint.Parent)
@@ -24,18 +26,20 @@ function RagdollService:Ragdoll(Character)
 	end
 	task.spawn(function()
 		task.wait(1)
-		self.unRagdoll(Character)
+		RagdollService:Unragdoll(Character)
 	end)
 end
 
 function RagdollService:Unragdoll(Character)
-    for _, descendant in pairs(Character:GetDescendants()) do
-        if descendant:IsA("Motor6D") then
-            descendant.Enabled = true
-        elseif descendant:IsA("BallSocketConstraint") or descendant:IsA("Attachment") then
-            descendant:Destroy()
-        end
-    end
+	Character.Ragdolled.Value = false
+
+    for i, joint in pairs(Character:GetDescendants()) do
+		if joint:IsA("Motor6D") then
+			joint.Enabled = true
+		elseif joint:IsA("BallSocketConstraint") then
+			joint.Enabled = false
+		end
+	end
 end
 
 return RagdollService

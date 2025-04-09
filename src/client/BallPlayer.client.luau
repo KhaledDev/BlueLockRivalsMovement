@@ -373,3 +373,15 @@ RunService.RenderStepped:Connect(function()
         UpdateShootingBarUI(chargeDuration)
     end
 end)
+
+character:WaitForChild("Ragdolled").Changed:Connect(function()
+    if character.Ragdolled.Value == true then
+        -- Stop all animations when ragdolled
+        for _, track in ipairs(character.Humanoid.Animator:GetPlayingAnimationTracks()) do
+            track:Stop()
+        end
+        character.Humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+    else
+        character.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+    end
+end)
