@@ -12,12 +12,32 @@ local onClientPass = RS.Events.onClientPass
 onClientShoot.OnClientEvent:Connect(function(player, position, direction, multiplier)
     local ball = workspace:FindFirstChild("Ball")
     if not ball then return end
-
-    -- Move the ball to the specified position
-    ball.Position = position + (direction * 2)
-
-    -- Apply impulse for shooting
-    local impulse = (direction * BallPhysicsProperties.Shooting.Force + (BallPhysicsProperties.Shooting.UpForce * multiplier)) * ball.AssemblyMass
+    
+    -- get the angle of direction
+    local angle = direction.Y
+    
+    -- get the angle in degrees
+    local angleInDegrees = math.deg(math.asin(angle))
+    
+    local baseForce = BallPhysicsProperties.Shooting.Force * direction
+    
+    -- Add vertical lift based on multiplier (for height)
+    local upForce = Vector3.new(0, BallPhysicsProperties.Shooting.UpForce.Y * multiplier, 0)
+    
+    if angleInDegrees >= 68 then
+        -- Looking up
+        baseForce = baseForce * 0.1
+    elseif angleInDegrees <= -68 then
+        -- Looking down
+        baseForce = baseForce * 0.5
+        upForce = Vector3.zero
+    else
+        -- Move the ball 2 units in front of its current position, to avoid accidental collisions
+        ball.Position = position + (direction * 1.5)
+    end
+    
+    -- Combine forces and apply mass
+    local impulse = (baseForce + upForce) * ball.AssemblyMass
     ball:ApplyImpulse(impulse)
 end)
 
@@ -25,11 +45,32 @@ end)
 onClientPass.OnClientEvent:Connect(function(player, position, direction, multiplier)
     local ball = workspace:FindFirstChild("Ball")
     if not ball then return end
-
-    -- Move the ball to the specified position
-    ball.Position = position + (direction * 2)
-
-    -- Apply impulse for passing
-    local impulse = (direction * BallPhysicsProperties.Passing.Force) * ball.AssemblyMass
+    
+    -- get the angle of direction
+    local angle = direction.Y
+    
+    -- get the angle in degrees
+    local angleInDegrees = math.deg(math.asin(angle))
+    
+    -- Use the same structure as shooting but with pass-specific forces
+    local baseForce = BallPhysicsProperties.Shooting.Force * 0.6 * direction -- Passes are generally weaker than shots
+    
+    -- Add vertical lift based on multiplier (for height), but less than for shooting
+    local upForce = Vector3.new(0, BallPhysicsProperties.Shooting.UpForce.Y * multiplier * 0.5, 0)
+    
+    if angleInDegrees >= 68 then
+        -- Looking up
+        baseForce = baseForce * 0.1
+    elseif angleInDegrees <= -68 then
+        -- Looking down
+        baseForce = baseForce * 0.5
+        upForce = Vector3.zero
+    else
+        -- Move the ball 2 units in front of its current position, to avoid accidental collisions
+        ball.Position = position + (direction * 1.5)
+    end
+    
+    -- Combine forces and apply mass
+    local impulse = (baseForce + upForce) * ball.AssemblyMass
     ball:ApplyImpulse(impulse)
 end)

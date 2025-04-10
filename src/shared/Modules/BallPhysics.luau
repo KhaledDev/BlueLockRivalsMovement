@@ -2,7 +2,7 @@ local BallPhysics = {}
 
 BallPhysics.Shooting = {
     UpForce = Vector3.new(0,50,0),
-    Force = 150,
+    Force = 120,
     Bouncyness = 1,
     TimetoPickUp = 0.1,
 }

@@ -137,7 +137,11 @@ function C_Shoot()
     kickTrack:AdjustSpeed(3)
     kickTrack.TimePosition = 0.9
 
-    onShoot:FireServer(multiplier)
+    -- Get full camera direction for shooting, including up/down angles
+    local cameraDirection = workspace.CurrentCamera.CFrame.LookVector
+    -- No need to normalize horizontally anymore, we want the full direction
+    
+    onShoot:FireServer(multiplier, cameraDirection)
     ShootingBarUI.Parent.Visible = false
     local humanoid = character:FindFirstChild("Humanoid")
     if humanoid then
@@ -149,7 +153,10 @@ end
 function C_Pass()
     local chargeDuration = math.min(tick() - chargeStartTime, maxChargeTime)
     local multiplier = 1 + (chargeDuration / maxChargeTime)
-    onPass:FireServer(multiplier)
+    
+    local cameraDirection = workspace.CurrentCamera.CFrame.LookVector
+    
+    onPass:FireServer(multiplier,cameraDirection)
     ShootingBarUI.Parent.Visible = false
 end
 
@@ -236,7 +243,7 @@ function C_ToggleShiftLock()
     local Z = 1 - math.abs(math.sin(Cross.Y * math.pi / 2))
     local OFFSET = Vector3.new(3, Y, -0.5)
     local pos = Vector3.new(X, Y, Z) * OFFSET
-    local targetOffset = pos
+    local targetOffset = Vector3.new(0,1,0)
     local currentOffset = Humanoid.CameraOffset
     local startTime = tick()
     local duration = 0.3

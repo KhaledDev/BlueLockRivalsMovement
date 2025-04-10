@@ -85,7 +85,7 @@ end
 --[[
     Function to shoot the ball will be called from a remote event.
 ]]
-function ShootBall(player : Player?, Multiplier : number?)
+function ShootBall(player : Player?, Multiplier : number?, direction : Vector3?)
     --[[
         Check if the player has the ball
         if the player doesn't then dont shoot
@@ -95,6 +95,7 @@ function ShootBall(player : Player?, Multiplier : number?)
     if typeof(Multiplier) ~= "number" then return end
     
     Multiplier = Multiplier or 1
+    direction = direction or ball.CFrame.LookVector -- Default to ball direction if no direction provided
     
     print(player.Name .. " is shooting")
     
@@ -103,58 +104,100 @@ function ShootBall(player : Player?, Multiplier : number?)
         ball.Weld:Destroy()
     end
     
-    -- Move the ball 2 units in front of its current position, to avoid accidental collisions
-    ball.Position = ball.Position + (ball.CFrame.LookVector * 2)
+    -- get the angle of direction
+    local angle = direction.Y
     
-    -- Apply impulse for smoother shooting
-    local impulse = (ball.CFrame.LookVector * BallPhysicsProperties.Shooting.Force + (BallPhysicsProperties.Shooting.UpForce * Multiplier)) * ball.AssemblyMass
+    -- get the angle in degrees
+    local angleInDegrees = math.deg(math.asin(angle))
+    
+    local baseForce = BallPhysicsProperties.Shooting.Force * direction
+    
+    -- Add vertical lift based on multiplier (for height)
+    local upForce = Vector3.new(0, BallPhysicsProperties.Shooting.UpForce.Y * Multiplier, 0)
+    
+    if angleInDegrees >= 68 then
+        -- Looking up
+        baseForce = baseForce * 0.1
+    elseif angleInDegrees <= -68 then
+        -- Looking down
+        baseForce = baseForce * 0.5
+        upForce = Vector3.zero
+    else
+        -- Move the ball 2 units in front of its current position, to avoid accidental collisions
+        ball.Position = ball.Position + (ball.CFrame.LookVector * 1.5)
+    end
+    
+    -- Combine forces and apply mass
+    local impulse = (baseForce + upForce) * ball.AssemblyMass
     ball:ApplyImpulse(impulse)
 
     -- Broadcast the shooting action to all clients
-    onClientShoot:FireAllClients(player, ball.Position, ball.CFrame.LookVector, Multiplier)
+    onClientShoot:FireAllClients(player, ball.Position, direction, Multiplier)
     
     -- Update server-side state
     canPickup = false
     InGamePlayers[player].HasBall = false
 
-    task.delay(BallPhysicsProperties.Shooting.TimetoPickUp, function() 
+    task.delay(BallPhysicsProperties.Shooting.TimetoPickUp, function()
         canPickup = true
     end)
 end
 
-function PassBall(player : Player?, Multiplier : number?)
+function PassBall(player : Player?, Multiplier : number?, direction : Vector3?)
     --[[
         Check if the player has the ball
         if the player doesn't then dont pass
     ]]
     if not InGamePlayers[player].HasBall then return end
-    
+
     if typeof(Multiplier) ~= "number" then return end
     
-    print(player.Name .. " is passing")
-    
     Multiplier = Multiplier or 1
+    direction = direction or ball.CFrame.LookVector -- Default to ball direction if no direction provided
+    
+    print(player.Name .. " is passing")
     
     -- Remove the weld from the ball
     if ball:FindFirstChild("Weld") then
         ball.Weld:Destroy()
     end
     
-    -- Move the ball 2 units in front of its current position, to avoid accidental collisions
-    ball.Position = ball.Position + (ball.CFrame.LookVector * 2)
+    -- get the angle of direction
+    local angle = direction.Y
     
-    -- Apply impulse for smoother passing
-    local impulse = (ball.CFrame.LookVector * BallPhysicsProperties.Passing.Force) * ball.AssemblyMass
+    -- get the angle in degrees
+    local angleInDegrees = math.deg(math.asin(angle))
+    
+    -- Use the same structure as ShootBall but with pass-specific forces
+    local baseForce = BallPhysicsProperties.Shooting.Force * 0.6 * direction -- Passes are generally weaker than shots
+    
+    -- Add vertical lift based on multiplier (for height), but less than for shooting
+    local upForce = Vector3.new(0, BallPhysicsProperties.Shooting.UpForce.Y * Multiplier * 0.5, 0)
+    
+    if angleInDegrees >= 68 then
+        -- Looking up
+        baseForce = baseForce * 0.1
+    elseif angleInDegrees <= -68 then
+        -- Looking down
+        baseForce = baseForce * 0.5
+        upForce = Vector3.zero
+    else
+        -- Move the ball 2 units in front of its current position, to avoid accidental collisions
+        ball.Position = ball.Position + (ball.CFrame.LookVector * 1.5)
+    end
+
+    -- Combine forces and apply mass
+    local impulse = (baseForce + upForce) * ball.AssemblyMass
     ball:ApplyImpulse(impulse)
 
     -- Broadcast the passing action to all clients
-    onClientPass:FireAllClients(player, ball.Position, ball.CFrame.LookVector, Multiplier)
+    onClientPass:FireAllClients(player, ball.Position, direction, Multiplier)
     
     -- Update server-side state
     canPickup = false
     InGamePlayers[player].HasBall = false
 
-    task.delay(BallPhysicsProperties.Passing.TimetoPickUp, function() 
+    task.delay(BallPhysicsProperties.Passing.TimetoPickUp, function() -- 1.5 second delay before ball can be picked up again
         canPickup = true
     end)
 end
