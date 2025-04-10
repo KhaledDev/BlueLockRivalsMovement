@@ -25,6 +25,10 @@ local chargeStartTime = 0
 local maxChargeTime = 2 -- Maximum time to reach a multiplier of 2
 local ShootingBarUI = nil
 
+-- Variables for tackle
+local canCooldown = true
+local tackleCooldown = BallPhysicsProperties.Tackle.TackleCooldown
+
 -- Variables for shiftlock
 local shiftLockEnabled = false
 
@@ -174,50 +178,63 @@ end
 
 function C_Tackle()
     
+    if not canCooldown then return end
+    canCooldown = false
+    
     if workspace:FindFirstChild("Ball") then
         local ball = workspace.Ball
-        
         if ball:FindFirstChild("Weld") then
             local part1 = ball.Weld.Part1
-            
             if part1 and part1:IsA("BasePart") then
                 local parent = part1.Parent
-                
                 if parent and parent:FindFirstChild("HumanoidRootPart") == humanoidRootPart then
                     return
                 end
-                
             end
-            
         end
-        
     end
     
     -- Store the current position
     local start_pos = humanoidRootPart.CFrame.Position
 
-    humanoidRootPart.AssemblyLinearVelocity = humanoidRootPart.CFrame.LookVector * BallPhysicsProperties.Tackle.TackleForce
-    
-    -- send the event
+    local tackleForce = BallPhysicsProperties.Tackle.TackleForce
+    local tackleDistance = BallPhysicsProperties.Tackle.TackleDistance
+    local steps = 20 -- Number of steps for gradual velocity increase
+    local increment = tackleForce / steps
+    local currentForce = 50
+
+    -- Send the event
     onTackle:FireServer()
-    
+
     -- Play tackle animation
-    
-    local track : AnimationTrack = animations.Slide
+    local track: AnimationTrack = animations.Slide
     track.Looped = true
     track:Play()
-    -- check the distance between the start and current until we reach threashold
-    while true do
+
+    -- Gradually increase velocity
+    while currentForce < tackleForce do
+        currentForce = math.min(currentForce + increment, tackleForce)
         
-        if (start_pos - humanoidRootPart.CFrame.Position).Magnitude >= BallPhysicsProperties.Tackle.TackleDistance then
+        -- Ensure the player doesn't fly by keeping the velocity horizontal
+        local horizontalVelocity = humanoidRootPart.CFrame.LookVector * currentForce
+        -- reset the velocity to 0
+        humanoidRootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        
+        -- Apply the horizontal velocity
+        humanoidRootPart.AssemblyLinearVelocity = Vector3.new(horizontalVelocity.X, 0, horizontalVelocity.Z)
+
+        if (start_pos - humanoidRootPart.CFrame.Position).Magnitude >= tackleDistance then
             break
         end
-        
-        task.wait(0.1) -- wait 0.1 seconds to not crash the client kekw
+
+        task.wait(0.1) -- wait 0.1 seconds to not crash the client
     end
-    
+
     -- Clean up
     track:Stop()
+    
+    task.wait(tackleCooldown)
+    canCooldown = true
 end
 
 function C_RainbowFlick()
